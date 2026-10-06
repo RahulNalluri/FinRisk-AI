@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Real-Time Dashboard — FinRisk AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  <style>
+    .dashboard-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 40px;
+      margin-top: 100px;
+    }
+
+    .dashboard-header h1 {
+      font-size: 2.5rem;
+      color: #0f172a;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .refresh-btn {
+      background: linear-gradient(135deg, #3b82f6, #1e40af);
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .refresh-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+
+    .metric-card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      transition: all 0.3s ease;
+    }
+
+    .metric-card:hover {
+      border-color: #3b82f6;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+    }
+
+    .metric-label {
+      font-size: 0.85rem;
+      color: #64748b;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    .metric-value {
+      font-size: 2rem;
+      color: #0f172a;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .metric-subtext {
+      font-size: 0.8rem;
+      color: #94a3b8;
+    }
+
+    .charts-section {
+      margin-bottom: 40px;
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 24px;
+    }
+
+    .chart-card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .chart-title {
+      font-size: 1.1rem;
+      color: #0f172a;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 300px;
+      width: 100%;
+    }
+
+    .nav-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #3b82f6;
+      text-decoration: none;
+      font-weight: 500;
+      margin-bottom: 20px;
+      transition: all 0.3s ease;
+    }
+
+    .nav-back:hover {
+      gap: 12px;
+    }
+
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 400px;
+      font-size: 1.1rem;
+      color: #64748b;
+    }
+
+    .error-message {
+      background-color: #fee2e2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+      <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+    </svg>
+    FinRisk AI
+  </div>
+  <ul class="nav-links">
+    <li><a href="/">Home</a></li>
+    <li><a href="/dashboard">Dashboard</a></li>
+    <li><a href="/customer-profile">Customer Profile</a></li>
+  </ul>
+</nav>
+
+<div class="dashboard-container">
+  <a href="/" class="nav-back">← Back to Home</a>
+
+  <div class="dashboard-header">
+    <h1>📊 Real-Time Analytics Dashboard</h1>
+    <button class="refresh-btn" onclick="refreshDashboard()">🔄 Refresh Data</button>
+  </div>
+
+  <div id="error-container"></div>
+
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-label">Total Transactions Analyzed</div>
+      <div class="metric-value" id="total-tx">—</div>
+      <div class="metric-subtext">Today</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Fraud Detected</div>
+      <div class="metric-value" id="fraud-count">—</div>
+      <div class="metric-subtext"><span id="fraud-pct">—</span>% of total</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Average Risk Score</div>
+      <div class="metric-value" id="avg-risk">—</div>
+      <div class="metric-subtext">Across all transactions</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Model Accuracy</div>
+      <div class="metric-value" id="model-accuracy">—</div>
+      <div class="metric-subtext">Detection precision</div>
+    </div>
+  </div>
+
+  <div class="charts-section">
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">Fraud Types Distribution</div>
+        <div class="chart-container">
+          <canvas id="fraudTypesChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Top Fraud Locations</div>
+        <div class="chart-container">
+          <canvas id="fraudLocationChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let fraudTypesChartInstance = null;
+  let fraudLocationChartInstance = null;
+
+  async function loadDashboardData() {
+    try {
+      const response = await fetch('/api/dashboard-data');
+      const data = await response.json();
+
+      if (response.ok) {
+        // Update metrics
+        document.getElementById('total-tx').textContent = data.total_transactions.toLocaleString();
+        document.getElementById('fraud-count').textContent = data.fraud_detected.toLocaleString();
+        document.getElementById('fraud-pct').textContent = data.fraud_percentage.toFixed(1);
+        document.getElementById('avg-risk').textContent = data.avg_risk_score.toFixed(1) + '%';
+        document.getElementById('model-accuracy').textContent = data.accuracy;
+
+        // Clear error if exists
+        document.getElementById('error-container').innerHTML = '';
+
+        // Update charts
+        updateFraudTypesChart(data.fraud_types);
+        updateFraudLocationChart(data.fraud_by_location);
+      } else {
+        showError('Failed to load dashboard data');
+      }
+    } catch (error) {
+      showError('Error loading dashboard: ' + error.message);
+    }
+  }
+
+  function updateFraudTypesChart(fraudTypes) {
+    const ctx = document.getElementById('fraudTypesChart').getContext('2d');
+    
+    if (fraudTypesChartInstance) {
+      fraudTypesChartInstance.destroy();
+    }
+
+    const labels = Object.keys(fraudTypes);
+    const data = Object.values(fraudTypes);
+    const colors = [
+      '#ef4444', '#f97316', '#eab308', '#22c55e',
+      '#06b6d4', '#0ea5e9', '#6366f1', '#d946ef'
+    ];
+
+    fraudTypesChartInstance = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: data,
+          backgroundColor: colors.slice(0, labels.length),
+          borderColor: '#ffffff',
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { font: { size: 11 }, padding: 15 }
+          }
+        }
+      }
+    });
+  }
+
+  function updateFraudLocationChart(fraudLocations) {
+    const ctx = document.getElementById('fraudLocationChart').getContext('2d');
+    
+    if (fraudLocationChartInstance) {
+      fraudLocationChartInstance.destroy();
+    }
+
+    const labels = Object.keys(fraudLocations);
+    const data = Object.values(fraudLocations);
+
+    fraudLocationChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Fraud Cases',
+          data: data,
+          backgroundColor: '#3b82f6',
+          borderRadius: 6,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          x: { beginAtZero: true, grid: { color: '#e2e8f0' } },
+          y: { grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  function showError(message) {
+    document.getElementById('error-container').innerHTML = `
+      <div class="error-message">${message}</div>
+    `;
+  }
+
+  function refreshDashboard() {
+    loadDashboardData();
+  }
+
+  // Load data on page load
+  document.addEventListener('DOMContentLoaded', loadDashboardData);
+
+  // Auto-refresh every 30 seconds
+  setInterval(loadDashboardData, 30000);
+</script>
+
+</body>
+</html>

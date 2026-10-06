@@ -1,0 +1,41 @@
+# Datasets and trained artifacts, including copies under docs/
+data/
+models/
+*.pkl
+*.joblib
+
+# Python environments and generated caches
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Local configuration; keep sanitized example files versioned
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Generated reports and logs
+*.log
+/test_output.txt
+/predictions_results.txt
+/presentation.pptx
+
+# Editor and operating-system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
