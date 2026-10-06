@@ -1,13 +1,66 @@
-# Financial Fraud Risk System (FinRisk AI)
+# FinRisk AI
 
-A Python/Flask demo for inspecting customer transaction history, flagging payment
-risk, and estimating loan default risk. The web interface includes a transaction
-scanner, loan assessment form, analytics dashboard, and customer profiles.
+### Financial fraud screening and loan risk analysis in one dashboard
 
-The application reads local CSV data and serialized scikit-learn artifacts. It
-does not connect to a bank, process payments, or persist submitted transactions.
+FinRisk AI brings customer transaction history, fraud screening, and loan default
+prediction into a single Flask application. It combines a browser-based review
+workflow with machine-learning experiments, giving users a way to explore risk
+signals and understand the reasons behind an assessment.
 
-## Current behavior
+**Built with:** Python · Flask · scikit-learn · pandas · NumPy · Chart.js
+
+[Problem](#the-problem) · [Features](#key-features) ·
+[Model results](#model-performance) · [Setup](#setup-and-run) ·
+[API](#routes-and-request-examples) · [Roadmap](#roadmap)
+
+## The problem
+
+Transaction records alone do not make it easy to identify customers with a
+history of fraud, compare patterns across locations, or assess loan repayment
+risk. Reviewing these details separately adds manual work and makes it harder
+to connect an individual decision with its supporting evidence.
+
+FinRisk AI addresses this workflow by bringing together:
+
+- **Customer context:** historical transactions, flagged records, and fraud types
+  alongside the payment being reviewed.
+- **Consistent screening:** customer lookup and transaction-limit checks before
+  producing a payment verdict.
+- **Loan risk assessment:** a trained classifier that returns a default-risk
+  estimate and an approval/rejection label.
+- **Portfolio visibility:** charts and summaries of fraud in the loaded dataset.
+
+The project demonstrates a local financial-risk review workflow. It does not
+connect to a bank, process payments, or persist submitted transactions, and no
+real-world reduction in fraud losses has been measured.
+
+## Key features
+
+| Feature | What users can do |
+| --- | --- |
+| Transaction scanner | Enter an amount, customer ID, and payment type; receive a history-based verdict and reasons |
+| Customer lookup | Inspect prior transactions, card types, locations, and flagged activity |
+| Loan assessment | Submit income, loan amount, and purpose to estimate default risk |
+| Analytics dashboard | Explore fraud counts, common fraud types, and affected locations |
+| Customer risk profiles | View fraud rate, review recommendations, and recent records in CSV order |
+| Model development | Explore notebooks and train scam, fraud-type, loan, payment, and credit-card classifiers |
+
+## How it works
+
+```mermaid
+flowchart LR
+    U[Browser interface] --> F[Flask application]
+    D[Local scam CSV] --> H[Customer history and analytics]
+    H --> F
+    F --> P[Payment limits and history rules]
+    F --> L[Loan eligibility and feature preparation]
+    M[Saved scaler and loan model] --> L
+    P --> R[Verdict and reasons]
+    L --> R
+    R --> U
+```
+
+### Payment screening
 
 - **Payment screening:** requires a numeric customer ID present in the scam
   dataset. After checking the selected transaction limit, any prior fraudulent
@@ -16,6 +69,9 @@ does not connect to a bank, process payments, or persist submitted transactions.
   `93`. The fraud type comes from the first available historical type.
   This endpoint currently uses history rules, not model inference, even though
   some interface labels describe model-based scoring.
+
+### Loan assessment and analytics
+
 - **Loan assessment:** monthly income below INR 60,000 is rejected immediately.
   Otherwise, a saved scaler and Gradient Boosting classifier estimate default
   risk. Class `0` maps to `APPROVED`; class `1` maps to `REJECTED`.
@@ -39,6 +95,63 @@ are allowed. Unknown transaction type strings currently bypass this limit check.
 | ECOM | 500,000 |
 | NEFT | 10,000,000 |
 
+## Model performance
+
+The following results are **recorded notebook evaluations**, taken from saved
+outputs in this repository. They have not been rerun for this README and are not
+live application metrics. Precision, recall, and F1 refer to the positive class:
+fraud for the fraud datasets and default for the loan dataset.
+
+| Experiment | Algorithm | Accuracy | Precision | Recall | F1 | ROC-AUC | Test records |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Scam detection [1] | Random Forest | ~91% | 0.82 | 0.90 | 0.86 | 0.9702 | 1,446 |
+| Loan default [2] | Gradient Boosting | ~93% | 0.97 | 0.72 | 0.83 | 0.9423 | 6,517 |
+| Credit-card fraud [3] | Random Forest | 99.9561% | 0.97 | 0.77 | 0.86 | Not recorded | 56,962 |
+| Online-payment fraud [3] | Random Forest | 99.9724% | 0.98 | 0.80 | 0.88 | Not recorded | 1,272,524 |
+
+**Sources:** [1] [Scam fraud analysis](notebooks/scam_fraud_analysis.ipynb),
+[2] [Loan risk analysis](notebooks/loan_risk_analysis.ipynb),
+[3] [Credit-card and payment experiments](notebooks/data_analysis.ipynb).
+
+The dedicated scam and loan notebooks report accuracy rounded to two decimal
+places, so their percentages are approximate. All four experiments use an 80/20
+train/test split with `random_state=42`; the dedicated scam and loan notebooks
+also stratify by the target label.
+
+### Interpreting the results
+
+- **Recall matters for fraud:** the credit-card test set contains only 98 fraud
+  cases out of 56,962 records. Its high overall accuracy accompanies 77% fraud
+  recall, so accuracy alone does not describe detection quality.
+- **Thresholds change the tradeoff:** the loan notebook also evaluates a `0.3`
+  threshold. Default recall increases from `0.72` to `0.76`, while precision falls
+  from `0.97` to `0.88` and accuracy falls to approximately `92%`.
+- **Experiments differ from the deployed workflow:** notebook preprocessing,
+  model settings, and splits differ from `src/train_*.py`. These results do not
+  establish the performance of the currently saved artifacts or the payment
+  endpoint, which uses history rules. Credit-card and payment classifiers are
+  standalone experiments rather than models served by the web app.
+- **Evaluation can be strengthened:** preprocessing currently happens partly
+  before splitting, and scam training chooses its threshold on the test set.
+  Training-only preprocessing and a separate validation set are future work.
+
+The older general-analysis notebook also contains a 99.81% scam result, but that
+experiment leaves encoded `fraud_type` information in the inputs. It is excluded
+from the table because that label-derived feature can leak the target. The
+dedicated scam notebook removes it. UI figures such as `98.6%` are hardcoded
+display values and are not used as evaluation evidence here.
+
+## Technology stack
+
+| Layer | Tools |
+| --- | --- |
+| Web backend | Flask, Jinja templates, JSON endpoints |
+| Interface | HTML, CSS, JavaScript, Chart.js |
+| Data preparation | pandas, NumPy, categorical encoding, missing-value handling |
+| Machine learning | scikit-learn Random Forest, Gradient Boosting, StandardScaler |
+| Artifact storage | Local CSV files and joblib-serialized models |
+| Exploration | Jupyter notebooks, Matplotlib, Seaborn |
+
 ## Project layout
 
 ```text
@@ -58,11 +171,11 @@ requirements.txt/txt           Python dependency file
 check_dataset.py               Dataset inspection script
 test_predictions.py            Standalone scam-model diagnostic script
 create_powerpoint.py           Presentation generator
-docs/                          Reports, presentations, and duplicate app files
 ```
 
-Use the root `src`, `templates`, and `static` folders to run the app. The copies
-under `docs/` are not used by `src/app.py`.
+Use the root `src`, `templates`, and `static` folders to run the app. Local
+reports and duplicate project files under `docs/` are excluded from Git and are
+not needed to run the application.
 
 ## Setup and run
 
@@ -218,14 +331,27 @@ results. Input validation is limited, and no authentication is implemented.
 `presentation.pptx` in the root. Notebook tooling is also separate from the listed
 application dependencies.
 
-## Git ignore policy
+## Roadmap
+
+- [ ] Connect transaction screening to a validated inference pipeline and make
+  the use of customer history explicit in the final decision.
+- [ ] Fit preprocessing only on training data; use separate validation and test
+  sets, customer/time-aware splits, and reproducible evaluation reports.
+- [ ] Align loan income units and collect the applicant features currently filled
+  with defaults.
+- [ ] Add request validation, endpoint tests, authentication, and a production
+  server configuration.
+- [ ] Replace hardcoded dashboard performance figures with measured results.
+- [ ] Persist reviewed transactions and refresh analytics from stored records.
+- [ ] Pin dependency versions and standardize the requirements file layout.
+
+## Repository contents
 
 `.gitignore` excludes directories named `data/` and `models/` at any depth,
-including `docs/data/` and `docs/models/`. It also excludes serialized model
-files, virtual environments, Python/notebook caches, local environment files,
-generated logs and root diagnostic outputs, and editor/OS files. Source code,
-notebooks, existing documentation, and sanitized `.env.example` files remain
-eligible for version control.
+the root `docs/` folder, serialized model files, virtual environments,
+Python/notebook caches, local environment files, generated logs and root
+diagnostic outputs, and editor/OS files. Source code, analysis notebooks, this
+README, and sanitized `.env.example` files remain eligible for version control.
 
-Ignore rules do not remove files already tracked by Git. This folder did not
-contain Git metadata when the README and ignore file were added.
+Ignoring or untracking a directory keeps local files intact. Removing `docs/`
+from a later commit does not erase it from earlier Git history.

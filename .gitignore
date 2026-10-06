@@ -4,6 +4,9 @@ models/
 *.pkl
 *.joblib
 
+# Local reports, presentations, and duplicate project files
+/docs/
+
 # Python environments and generated caches
 .venv/
 venv/
