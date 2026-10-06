@@ -7,6 +7,10 @@ models/
 # Local reports, presentations, and duplicate project files
 /docs/
 
+# Local helper scripts
+/check_dataset.py
+/create_powerpoint.py
+
 # Python environments and generated caches
 .venv/
 venv/

@@ -168,9 +168,7 @@ notebooks/                     Exploratory analysis notebooks
 data/                          Local CSV datasets (ignored by Git)
 models/                        Trained artifacts (ignored by Git)
 requirements.txt/txt           Python dependency file
-check_dataset.py               Dataset inspection script
 test_predictions.py            Standalone scam-model diagnostic script
-create_powerpoint.py           Presentation generator
 ```
 
 Use the root `src`, `templates`, and `static` folders to run the app. Local
@@ -311,11 +309,10 @@ API uses HTTP 400 for an invalid ID and 404 for an unknown customer.
 ## Diagnostics and limitations
 
 ```powershell
-.\.venv\Scripts\python.exe check_dataset.py
 .\.venv\Scripts\python.exe test_predictions.py
 ```
 
-These scripts print diagnostics; they are not an automated assertion-based test
+This script prints diagnostics; it is not an automated assertion-based test
 suite. `test_predictions.py` evaluates the scam model directly and therefore
 does not test the history rules in `/predict_payment`.
 
@@ -327,9 +324,7 @@ monthly, while the backend passes it directly to `person_income` and annualizes
 it only for the loan-to-income ratio; verify dataset units before interpreting
 results. Input validation is limited, and no authentication is implemented.
 
-`create_powerpoint.py` additionally requires `python-pptx` and writes
-`presentation.pptx` in the root. Notebook tooling is also separate from the listed
-application dependencies.
+Notebook tooling is separate from the listed application dependencies.
 
 ## Roadmap
 
@@ -348,7 +343,8 @@ application dependencies.
 ## Repository contents
 
 `.gitignore` excludes directories named `data/` and `models/` at any depth,
-the root `docs/` folder, serialized model files, virtual environments,
+the root `docs/` folder, local helper scripts `check_dataset.py` and
+`create_powerpoint.py`, serialized model files, virtual environments,
 Python/notebook caches, local environment files, generated logs and root
 diagnostic outputs, and editor/OS files. Source code, analysis notebooks, this
 README, and sanitized `.env.example` files remain eligible for version control.
